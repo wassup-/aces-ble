@@ -16,44 +16,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     adapter.start_scan(ScanFilter::default()).await?;
     tokio::time::sleep(Duration::from_secs(2)).await;
     let peripherals = adapter.peripherals().await?;
-    let battery = find_aces_battery(&peripherals).await.unwrap();
+    let mut battery = find_aces_battery(&peripherals).await.unwrap();
 
-    battery.prepare().await?;
+    loop {
+        let detail = battery.request_detail().await?;
+        println!("detail: {:#?}", detail);
 
-    println!("subscribing for notifications ...");
-    let mut notifications = battery.subscribe_notifications().await?;
+        let soc = battery.request_soc().await?;
+        println!("soc: {}", soc);
 
-    println!("requesting SOC ...");
-    battery.request_soc().await?;
-
-    println!("waiting for notifications ...");
-    if let Some(notification) = notifications.next().await {
-        println!("got notification: {:?}", notification);
-
-        let msg = notification.value;
-        match aces::Battery::parse_message(&msg) {
-            Ok(aces::Message::Soc(soc)) => println!("soc: {}", soc),
-            Ok(aces::Message::Detail(detail)) => println!("detail: {:#?}", detail),
-            Err(err) => eprintln!("failed to parse message '{:02X?}': {}", msg, err),
-        }
+        // battery.request_protect().await?;
+        // print_next_message(&mut notifications).await;
     }
-
-    println!("requesting DETAIL ...");
-    battery.request_detail().await?;
-
-    println!("waiting for notifications ...");
-    if let Some(notification) = notifications.next().await {
-        println!("got notification: {:?}", notification);
-
-        let msg = notification.value;
-        match aces::Battery::parse_message(&msg) {
-            Ok(aces::Message::Soc(soc)) => println!("soc: {}", soc),
-            Ok(aces::Message::Detail(detail)) => println!("detail: {:#?}", detail),
-            Err(err) => eprintln!("failed to parse message '{:02X?}': {}", msg, err),
-        }
-    }
-
-    Ok(())
 }
 
 async fn find_aces_battery(
@@ -109,11 +83,7 @@ async fn find_aces_battery(
             _ => continue,
         };
 
-        return Ok(aces::Battery::new(
-            peripheral.clone(),
-            rx.clone(),
-            tx.clone(),
-        ));
+        return aces::Battery::prepare(peripheral.clone(), rx.clone(), tx.clone()).await;
     }
 
     Err(NotFound.into())
@@ -126,5 +96,4 @@ struct NotFound;
 use btleplug::api::bleuuid::uuid_from_u16;
 use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter};
 use btleplug::platform::{Manager, Peripheral};
-use futures::StreamExt;
 use std::time::Duration;
