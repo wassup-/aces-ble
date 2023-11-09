@@ -1,0 +1,15 @@
+[package]
+name = "aces-ble"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+btleplug = { version = "0.11", features = ["serde"] }
+futures = "0"
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0.50"
+tokio = { version = "1.33", features = ["rt-multi-thread", "macros"] }
+log = "0"
+env_logger = "0"
