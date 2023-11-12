@@ -47,4 +47,33 @@ impl BatteryProtect {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_parse_message() {
+        assert_eq!(
+            BatteryProtect::parse_message(&[
+                0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xE4,
+                0x77
+            ]),
+            Ok(BatteryProtect {
+                short_circuit: 0,
+                over_current_charging: 0,
+                over_current_discharging: 0,
+                cell_overvoltage: 0,
+                cell_undervoltage: 4,
+                high_temp_charging: 0,
+                low_temp_charging: 0,
+                high_temp_discharging: 0,
+                low_temp_discharging: 0,
+                pack_overvoltage: 0,
+                pack_undervoltage: 0
+            })
+        );
+    }
+
+    use super::*;
+}
+
 use super::{util::i16_from_bytes, ParseError, ParseResult};
