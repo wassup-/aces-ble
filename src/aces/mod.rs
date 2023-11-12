@@ -95,7 +95,11 @@ impl Battery {
         self.write_value(&self.tx, REQ_BATTERY_PROTECT).await?;
         tokio::time::sleep(Duration::from_millis(500)).await;
 
-        let msg = self.next_notif_value().await?;
+        let first = self.next_notif_value().await?;
+        let mut second = self.next_notif_value().await?;
+        let mut msg = first;
+        msg.append(&mut second);
+
         return match Message::parse_message(&msg) {
             Ok(Message::Protect(protect)) => Ok(protect),
             _ => Err(WrongNotificationReceived.into()),
@@ -147,7 +151,7 @@ impl Battery {
 const REQ_CLEAR: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]; // "00000000000000"
 const REQ_BATTERY_DETAIL: &[u8] = &[0xdd, 0xa5, 0x03, 0x00, 0xff, 0xfd, 0x77]; // "DDA50300FFFD77"
 const REQ_BATTERY_VOLTAGE: &[u8] = &[0xdd, 0xa5, 0x04, 0x00, 0xff, 0xfc, 0x77]; // "DDA50400FFFC77"
-const REQ_BATTERY_PROTECT: &[u8] = &[0xdd, 0xa5, 0xaa, 0x00, 0xff, 0x56, 0xff]; // "DDA5AA00FF5677"
+const REQ_BATTERY_PROTECT: &[u8] = &[0xdd, 0xa5, 0xaa, 0x00, 0xff, 0x56, 0x77]; // "DDA5AA00FF5677"
 
 // helpers
 

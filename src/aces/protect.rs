@@ -32,13 +32,16 @@ impl BatteryProtect {
     }
 
     pub fn parse_message(msg: &[u8]) -> ParseResult<BatteryProtect> {
-        if msg.len() < 11 {
+        if msg.len() < (2 + 22) {
             return Err(ParseError::NotEnoughData);
         }
 
+        let msg = &msg[2..];
+
         let mut protect = BatteryProtect::default();
         for i in 0..11 {
-            protect.set_value_at(i, i16_from_bytes(&msg[i..(i + 2)]))
+            let offset = i * 2;
+            protect.set_value_at(i, i16_from_bytes(&msg[offset..(offset + 2)]))
         }
         Ok(protect)
     }

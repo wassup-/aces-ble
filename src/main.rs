@@ -25,8 +25,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let soc = battery.request_soc().await?;
         println!("soc: {}", soc);
 
-        // battery.request_protect().await?;
-        // print_next_message(&mut notifications).await;
+        let protect = battery.request_protect().await?;
+        println!("protect: {:#?}", protect);
     }
 }
 
