@@ -1,5 +1,5 @@
 pub enum Message {
-    BatteryVoltage(BatteryVoltage),
+    Voltage(BatteryVoltage),
     Detail(BatteryDetail),
     Protect(BatteryProtect),
 }
@@ -13,7 +13,7 @@ impl Message {
         if let Some(msg) = msg.strip_prefix(&[0xdd, 0x03]) {
             return BatteryDetail::parse_message(msg).map(Message::Detail);
         } else if let Some(msg) = msg.strip_prefix(&[0xdd, 0x04]) {
-            return BatteryVoltage::parse_message(msg).map(Message::BatteryVoltage);
+            return BatteryVoltage::parse_message(msg).map(Message::Voltage);
         } else if let Some(msg) = msg.strip_prefix(&[0xdd, 0xaa]) {
             return BatteryProtect::parse_message(msg).map(Message::Protect);
         }

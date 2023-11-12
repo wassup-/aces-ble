@@ -66,10 +66,10 @@ impl Battery {
         tokio::time::sleep(Duration::from_millis(500)).await;
 
         let msg = self.next_notif_value().await?;
-        return match Message::parse_message(&msg) {
-            Ok(Message::BatteryVoltage(bv)) => Ok(bv.total()),
+        match Message::parse_message(&msg) {
+            Ok(Message::Voltage(bv)) => Ok(bv.total()),
             _ => Err(WrongNotificationReceived.into()),
-        };
+        }
     }
 
     pub async fn request_detail(&mut self) -> Result<BatteryDetail> {
@@ -83,10 +83,10 @@ impl Battery {
         let mut msg = first;
         msg.append(&mut second);
 
-        return match Message::parse_message(&msg) {
+        match Message::parse_message(&msg) {
             Ok(Message::Detail(detail)) => Ok(detail),
             _ => Err(WrongNotificationReceived.into()),
-        };
+        }
     }
 
     pub async fn request_protect(&mut self) -> Result<BatteryProtect> {
@@ -100,10 +100,10 @@ impl Battery {
         let mut msg = first;
         msg.append(&mut second);
 
-        return match Message::parse_message(&msg) {
+        match Message::parse_message(&msg) {
             Ok(Message::Protect(protect)) => Ok(protect),
             _ => Err(WrongNotificationReceived.into()),
-        };
+        }
     }
 
     async fn write_value(&self, characteristic: &Characteristic, value: &[u8]) -> Result<()> {
