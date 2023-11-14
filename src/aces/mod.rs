@@ -17,6 +17,7 @@ type Notifications = Pin<Box<dyn Stream<Item = ValueNotification>>>;
 #[derive(Eq, PartialEq, Debug)]
 pub enum ParseError {
     NotEnoughData,
+    InvalidChecksum,
     InvalidData,
 }
 

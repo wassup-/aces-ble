@@ -9,7 +9,8 @@ edition = "2021"
 btleplug = { version = "0.11", features = ["serde"] }
 futures = "0"
 serde = { version = "1.0", features = ["derive"] }
-thiserror = "1.0.50"
+thiserror = "1"
 tokio = { version = "1.33", features = ["rt-multi-thread", "macros"] }
 log = "0"
 env_logger = "0"
+crc = "3"
