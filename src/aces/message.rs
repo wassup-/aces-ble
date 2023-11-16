@@ -11,123 +11,43 @@ pub struct ParseMessageFailed;
 
 impl Message {
     pub fn parse_message(msg: &[u8]) -> ParseResult<Message> {
-        if msg.len() < 2 {
+        if msg.len() < 7 {
             return Err(ParseError::NotEnoughData);
         }
 
-        let checksum = u16_from_bytes(&msg[msg.len() - 2..]);
-        let msg = &msg[..msg.len() - 2];
+        let identifier = u16_from_bytes(&msg[..2]);
+        let control = msg[2];
+        let len = msg[3] as usize;
+        let checksum = u16_from_bytes(&msg[msg.len() - 3..msg.len() - 1]);
 
-        if checksum != calculate_checksum(msg) {
+        if msg.len() != 7 + len {
+            return Err(ParseError::NotEnoughData);
+        }
+
+        let payload = &msg[4..(4 + len)];
+        if !verify_checksum(checksum, payload, control) {
             return Err(ParseError::InvalidChecksum);
         }
 
-        if let Some(msg) = msg.strip_prefix(&[0xdd, 0x03]) {
-            return BatteryDetail::parse_message(msg).map(Message::Detail);
-        } else if let Some(msg) = msg.strip_prefix(&[0xdd, 0x04]) {
-            return BatteryVoltage::parse_message(msg).map(Message::Voltage);
-        } else if let Some(msg) = msg.strip_prefix(&[0xdd, 0xaa]) {
-            return BatteryProtect::parse_message(msg).map(Message::Protect);
+        match identifier {
+            0xdd03 => return BatteryDetail::parse_message(payload).map(Message::Detail),
+            0xdd04 => return BatteryVoltage::parse_message(payload).map(Message::Voltage),
+            0xddaa => return BatteryProtect::parse_message(payload).map(Message::Protect),
+            _ => (),
         }
 
         Err(ParseError::InvalidData)
     }
 }
 
-fn calculate_checksum(bArr: &[u8]) -> u16 {
-    // byte[] bArr2 = {0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64};
-    // byte[] bArr3 = {0, -64, -63, 1, -61, 3, 2, -62, -58, 6, 7, -57, 5, -59, -60, 4, -52, 12, 13, -51, 15, -49, -50, 14, 10, -54, -53, 11, -55, 9, 8, -56, -40, 24, 25, -39, 27, -37, -38, 26, 30, -34, -33, 31, -35, 29, 28, -36, 20, -44, -43, 21, -41, 23, 22, -42, -46, 18, 19, -45, 17, -47, -48, 16, -16, 48, 49, -15, 51, -13, -14, 50, 54, -10, -9, 55, -11, 53, 52, -12, 60, -4, -3, 61, -1, 0x3f, 62, -2, -6, 58, 59, -5, 57, -7, -8, 56, 40, -24, -23, 41, -21, 43, 42, -22, -18, 46, 47, -17, 45, -19, -20, 44, -28, 36, 37, -27, 39, -25, -26, 38, 34, -30, -29, 35, -31, 33, 32, -32, -96, 96, 97, -95, 99, -93, -94, 98, 102, -90, -89, 103, -91, 101, 100, -92, 108, -84, -83, 109, -81, 111, 110, -82, -86, 106, 107, -85, 105, -87, -88, 104, 120, -72, -71, 121, -69, 123, 122, -70, -66, 126, Byte.MAX_VALUE, -65, 125, -67, -68, 124, -76, 116, 117, -75, 119, -73, -74, 118, 114, -78, -77, 115, -79, 113, 112, -80, 80, -112, -111, 81, -109, 83, 82, -110, -106, 86, 87, -105, 85, -107, -108, 84, -100, 92, 93, -99, 95, -97, -98, 94, 90, -102, -101, 91, -103, 89, 88, -104, -120, 72, 73, -119, 75, -117, -118, 74, 78, -114, -113, 79, -115, 77, 76, -116, 68, -124, -123, 69, -121, 71, 70, -122, -126, 66, 67, -125, 65, -127, Byte.MIN_VALUE, 64};
-    // int i = 0;
-    // byte b = 255;
-    // byte b2 = 255;
-    // while (i < bArr.length) {
-    //     byte b3 = (b2 ^ bArr[i]) & 255;
-    //     i++;
-    //     byte b4 = bArr3[b3];
-    //     b2 = b ^ bArr2[b3];
-    //     b = b4;
-    // }
-    // byte b5 = ((b & 255) << 8) | (b2 & 255 & 65535);
-    // return String.format("%04X", new Object[]{Integer.valueOf(((b5 & 255) << 8) | ((65280 & b5) >> 8))});
-
-    // byte[] bArr2 = {0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64, 1, -64, Byte.MIN_VALUE, 65, 1, -64, Byte.MIN_VALUE, 65, 0, -63, -127, 64};
-    let bArr2: [i8; 256] = [
-        0, -63, -127, 64, 1, -64, -128, 65, 1, -64, -128, 65, 0, -63, -127, 64, 1, -64, -128, 65,
-        0, -63, -127, 64, 0, -63, -127, 64, 1, -64, -128, 65, 1, -64, -128, 65, 0, -63, -127, 64,
-        0, -63, -127, 64, 1, -64, -128, 65, 0, -63, -127, 64, 1, -64, -128, 65, 1, -64, -128, 65,
-        0, -63, -127, 64, 1, -64, -128, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, -128, 65,
-        0, -63, -127, 64, 1, -64, -128, 65, 1, -64, -128, 65, 0, -63, -127, 64, 0, -63, -127, 64,
-        1, -64, -128, 65, 1, -64, -128, 65, 0, -63, -127, 64, 1, -64, -128, 65, 0, -63, -127, 64,
-        0, -63, -127, 64, 1, -64, -128, 65, 1, -64, -128, 65, 0, -63, -127, 64, 0, -63, -127, 64,
-        1, -64, -128, 65, 0, -63, -127, 64, 1, -64, -128, 65, 1, -64, -128, 65, 0, -63, -127, 64,
-        0, -63, -127, 64, 1, -64, -128, 65, 1, -64, -128, 65, 0, -63, -127, 64, 1, -64, -128, 65,
-        0, -63, -127, 64, 0, -63, -127, 64, 1, -64, -128, 65, 0, -63, -127, 64, 1, -64, -128, 65,
-        1, -64, -128, 65, 0, -63, -127, 64, 1, -64, -128, 65, 0, -63, -127, 64, 0, -63, -127, 64,
-        1, -64, -128, 65, 1, -64, -128, 65, 0, -63, -127, 64, 0, -63, -127, 64, 1, -64, -128, 65,
-        0, -63, -127, 64, 1, -64, -128, 65, 1, -64, -128, 65, 0, -63, -127, 64,
-    ];
-
-    // byte[] bArr3 = {0, -64, -63, 1, -61, 3, 2, -62, -58, 6, 7, -57, 5, -59, -60, 4, -52, 12, 13, -51, 15, -49, -50, 14, 10, -54, -53, 11, -55, 9, 8, -56, -40, 24, 25, -39, 27, -37, -38, 26, 30, -34, -33, 31, -35, 29, 28, -36, 20, -44, -43, 21, -41, 23, 22, -42, -46, 18, 19, -45, 17, -47, -48, 16, -16, 48, 49, -15, 51, -13, -14, 50, 54, -10, -9, 55, -11, 53, 52, -12, 60, -4, -3, 61, -1, 0x3f, 62, -2, -6, 58, 59, -5, 57, -7, -8, 56, 40, -24, -23, 41, -21, 43, 42, -22, -18, 46, 47, -17, 45, -19, -20, 44, -28, 36, 37, -27, 39, -25, -26, 38, 34, -30, -29, 35, -31, 33, 32, -32, -96, 96, 97, -95, 99, -93, -94, 98, 102, -90, -89, 103, -91, 101, 100, -92, 108, -84, -83, 109, -81, 111, 110, -82, -86, 106, 107, -85, 105, -87, -88, 104, 120, -72, -71, 121, -69, 123, 122, -70, -66, 126, Byte.MAX_VALUE, -65, 125, -67, -68, 124, -76, 116, 117, -75, 119, -73, -74, 118, 114, -78, -77, 115, -79, 113, 112, -80, 80, -112, -111, 81, -109, 83, 82, -110, -106, 86, 87, -105, 85, -107, -108, 84, -100, 92, 93, -99, 95, -97, -98, 94, 90, -102, -101, 91, -103, 89, 88, -104, -120, 72, 73, -119, 75, -117, -118, 74, 78, -114, -113, 79, -115, 77, 76, -116, 68, -124, -123, 69, -121, 71, 70, -122, -126, 66, 67, -125, 65, -127, Byte.MIN_VALUE, 64};
-    let bArr3: [i8; 256] = [
-        0, -64, -63, 1, -61, 3, 2, -62, -58, 6, 7, -57, 5, -59, -60, 4, -52, 12, 13, -51, 15, -49,
-        -50, 14, 10, -54, -53, 11, -55, 9, 8, -56, -40, 24, 25, -39, 27, -37, -38, 26, 30, -34,
-        -33, 31, -35, 29, 28, -36, 20, -44, -43, 21, -41, 23, 22, -42, -46, 18, 19, -45, 17, -47,
-        -48, 16, -16, 48, 49, -15, 51, -13, -14, 50, 54, -10, -9, 55, -11, 53, 52, -12, 60, -4, -3,
-        61, -1, 0x3f, 62, -2, -6, 58, 59, -5, 57, -7, -8, 56, 40, -24, -23, 41, -21, 43, 42, -22,
-        -18, 46, 47, -17, 45, -19, -20, 44, -28, 36, 37, -27, 39, -25, -26, 38, 34, -30, -29, 35,
-        -31, 33, 32, -32, -96, 96, 97, -95, 99, -93, -94, 98, 102, -90, -89, 103, -91, 101, 100,
-        -92, 108, -84, -83, 109, -81, 111, 110, -82, -86, 106, 107, -85, 105, -87, -88, 104, 120,
-        -72, -71, 121, -69, 123, 122, -70, -66, 126, 127, -65, 125, -67, -68, 124, -76, 116, 117,
-        -75, 119, -73, -74, 118, 114, -78, -77, 115, -79, 113, 112, -80, 80, -112, -111, 81, -109,
-        83, 82, -110, -106, 86, 87, -105, 85, -107, -108, 84, -100, 92, 93, -99, 95, -97, -98, 94,
-        90, -102, -101, 91, -103, 89, 88, -104, -120, 72, 73, -119, 75, -117, -118, 74, 78, -114,
-        -113, 79, -115, 77, 76, -116, 68, -124, -123, 69, -121, 71, 70, -122, -126, 66, 67, -125,
-        65, -127, -128, 64,
-    ];
-
-    // int i = 0;
-    // byte b = 255;
-    // byte b2 = 255;
-    let mut b: u8 = 255;
-    let mut b2: u8 = 255;
-
-    // while (i < bArr.length) {
-    for i in 0..bArr.len() {
-        //     byte b3 = (b2 ^ bArr[i]) & 255;
-        //     i++;
-        //     byte b4 = bArr3[b3];
-        //     b2 = b ^ bArr2[b3];
-        //     b = b4;
-        let b3: usize = ((b2 ^ bArr[i]) & 0xFF) as usize;
-        let b4: u8 = bArr3[b3] as u8;
-        b2 = b ^ bArr2[b3] as u8;
-        b = b4;
-    }
-
-    // byte b5 = ((b & 255) << 8) | (b2 & 255 & 65535);
-    let b5 = ((b as u16) << 8) | (b2 as u16);
-    // return String.format("%04X", new Object[]{Integer.valueOf(((b5 & 255) << 8) | ((65280 & b5) >> 8))});
-    ((b5 & 0x00FF) << 8) | ((b5 & 0xFF00) >> 8)
-}
-
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn test_calculate_checksum() {
-        assert_eq!(
-            calculate_checksum(&[
-                0xDD, 0x04, 0x00, 0x08, 0x0D, 0xE2, 0x0D, 0xDC, 0x0D, 0xEC, 0x0D, 0xED, 0xFC
-            ]),
-            0x2D77
-        );
-    }
-
     #[test]
     fn test_parse_message() {
         assert_eq!(
             Message::parse_message(&[
-                0xDD, 0x04, 0x00, 0x08, 0x0D, 0xE2, 0x0D, 0xDC, 0x0D, 0xEC, 0x0D, 0xED, 0xFC, 0x2D,
-                0x78
+                0xDD, 0x04, 0x00, 0x08, 0x0D, 0xE2, 0x0D, 0xDC, 0x0D, 0xEC, 0x0D, 0xED, 0xFF, 0x00,
+                0x77
             ]),
             Err(ParseError::InvalidChecksum)
         );
@@ -136,16 +56,39 @@ mod tests {
             0x77
         ])
         .is_ok());
-        assert!(Message::parse_message(&[
-            0xDD, 0x04, 0x00, 0x08, 0x0D, 0xE2, 0x0D, 0xDB, 0x0D, 0xEC, 0x0D, 0xED, 0xFC, 0x2E,
-            0x77
-        ])
-        .is_ok());
+        assert_eq!(
+            Message::parse_message(&[
+                0xDD, 0x03, 0x00, 0x1D, 0x05, 0x38, 0x02, 0x83, 0x17, 0x5C, 0x27, 0xDE, 0x00, 0x09,
+                0x2B, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x3B, 0x03, 0x04, 0x03, 0x0B,
+                0x7F, 0x0B, 0x6C, 0x0B, 0x69, 0xFB, 0x07, 0x77
+            ]),
+            Ok(Message::Detail(BatteryDetail {
+                total_voltage: 1336,
+                current: 643,
+                residual_capacity: 5980,
+                standard_capacity: 10206,
+                cycles: 9,
+                date_of_production: 11156,
+                equilibrium: 0,
+                equilibrium_high: 0,
+                protection_of_state: 0,
+                software_version: 32,
+                residual_capacity_percent: 59,
+                control_state: 3,
+                charge: true,
+                discharge: true,
+                battery_number: 4,
+                list_ntc: NtcList::from_list(vec![212, 193, 190])
+            }))
+        );
     }
+
+    use crate::aces::NtcList;
 
     use super::*;
 }
 
 use super::{
-    util::u16_from_bytes, BatteryDetail, BatteryProtect, BatteryVoltage, ParseError, ParseResult,
+    util::u16_from_bytes, verify_checksum, BatteryDetail, BatteryProtect, BatteryVoltage,
+    ParseError, ParseResult,
 };
