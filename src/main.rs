@@ -1,99 +1,113 @@
+#![no_main]
+
 mod aces;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::init();
+// source: https://github.com/taks/esp32-nimble/blob/develop/examples/ble_client.rs
 
-    let manager = Manager::new().await?;
-    let adapters = manager.adapters().await?;
+const SLEEP_DURATION: u64 = 30;
 
-    if adapters.is_empty() {
-        eprintln!("no Bluetooth adapters found");
-    }
+esp_idf_sys::esp_app_desc!();
 
-    let adapter = adapters.first().unwrap();
+#[no_mangle]
+fn app_main() {
+    esp_idf_sys::link_patches();
+    esp_idf_svc::log::EspLogger::initialize_default();
 
-    adapter.start_scan(ScanFilter::default()).await?;
-    tokio::time::sleep(Duration::from_secs(2)).await;
-    let peripherals = adapter.peripherals().await?;
-    let mut battery = find_aces_battery(&peripherals).await.unwrap();
+    let peripherals = Peripherals::take().unwrap();
+    let mut timer = TimerDriver::new(peripherals.timer00, &TimerConfig::new()).unwrap();
 
-    loop {
-        let detail = battery.request_detail().await?;
-        println!("detail: {:#?}", detail);
+    task::block_on(async {
+        let adapter = BLEDevice::take();
+        let device = find_aces_battery(&adapter).await;
 
-        let soc = battery.request_soc().await?;
-        println!("soc: {}", soc);
+        let mut client = BLEClient::new();
+        connect_to_device(device.addr(), &mut client).await;
 
-        let protect = battery.request_protect().await?;
-        println!("protect: {:#?}", protect);
-    }
-}
+        let service = client.get_service(Uuid16(SERVICE_UUID)).await.unwrap();
+        let mut characteristics = service.get_characteristics().await.unwrap();
+        let rx = characteristics
+            .find(|char| char.uuid() == Uuid16(RX_UUID))
+            .expect("RX characteristic not found");
+        let tx = characteristics
+            .find(|char| char.uuid() == Uuid16(TX_UUID))
+            .expect("TX characteristic not found");
 
-async fn find_aces_battery(
-    peripherals: &[Peripheral],
-) -> Result<aces::Battery, Box<dyn std::error::Error>> {
-    for peripheral in peripherals {
-        // filter peripherals
-        let properties = match peripheral.properties().await? {
-            Some(properties) => properties,
-            _ => continue,
-        };
-        if !properties
-            .local_name
-            .clone()
-            .unwrap_or_default()
-            .contains("AL12V100HFA0191")
-        {
-            continue;
+        let mut notif = Notifications::subscribe(rx).await;
+
+        tx.write_value(&REQ_CLEAR, false).await.unwrap();
+        timer.delay(timer.tick_hz()).await.unwrap();
+
+        loop {
+            let soc = request_soc(tx, &mut notif).await.unwrap();
+            println!("soc: {}", soc);
+
+            let detail = request_detail(tx, &mut notif).await.unwrap();
+            println!("detail: {:#?}", detail);
+
+            let protect = request_protect(tx, &mut notif).await.unwrap();
+            println!("protect: {:#?}", protect);
+
+            task::do_yield();
+
+            log::info!("sleeping for {} seconds", SLEEP_DURATION);
+            timer.delay(timer.tick_hz() * SLEEP_DURATION).await.unwrap();
         }
 
-        // discover services & characteristics
-
-        if !peripheral.is_connected().await? {
-            println!("connecting ...");
-            peripheral.connect().await?;
-        }
-
-        println!("discovering services ...");
-        peripheral.discover_services().await?;
-
-        let characteristics = peripheral.characteristics();
-        let _ota = match characteristics
-            .iter()
-            .find(|char| char.uuid == uuid_from_u16(0xfa01))
-        {
-            Some(char) => char,
-            _ => continue,
-        };
-
-        let rx = match characteristics
-            .iter()
-            .find(|char| char.uuid == uuid_from_u16(0xff01))
-        {
-            Some(char) => char,
-            _ => continue,
-        };
-
-        let tx = match characteristics
-            .iter()
-            .find(|char| char.uuid == uuid_from_u16(0xff02))
-        {
-            Some(char) => char,
-            _ => continue,
-        };
-
-        return aces::Battery::prepare(peripheral.clone(), rx.clone(), tx.clone()).await;
-    }
-
-    Err(NotFound.into())
+        // client.disconnect().unwrap();
+    });
 }
 
-#[derive(thiserror::Error, Debug)]
-#[error("Not found")]
-struct NotFound;
+async fn find_aces_battery(adapter: &BLEDevice) -> BLEAdvertisedDevice {
+    log::info!("starting scan ...");
 
-use btleplug::api::bleuuid::uuid_from_u16;
-use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter};
-use btleplug::platform::{Manager, Peripheral};
-use std::time::Duration;
+    let scan = adapter.get_scan();
+    let device = Arc::new(Mutex::new(None));
+
+    let device0 = device.clone();
+    scan.active_scan(true)
+        .interval(100)
+        .window(99)
+        .on_result(move |scan, device| {
+            if device.name().contains("AL12V100HFA0191") {
+                scan.stop().unwrap();
+                (*device0.lock()) = Some(device.clone());
+            }
+        });
+    scan.start(3000).await.unwrap();
+
+    log::info!("finished scan");
+
+    return match &*device.lock() {
+        Some(device) => device.clone(),
+        None => {
+            log::info!("ACES battery not found");
+            panic!("ACES battery not found");
+        }
+    };
+}
+
+async fn connect_to_device(address: &BLEAddress, client: &mut BLEClient) {
+    log::info!("connecting to device ...");
+    client.on_connect(|client| {
+        client.update_conn_params(120, 120, 0, 60).unwrap();
+    });
+    client.connect(address).await.unwrap();
+    log::info!("connected to device");
+}
+
+use esp32_nimble::{
+    utilities::{mutex::Mutex, BleUuid::Uuid16},
+    BLEAddress, BLEAdvertisedDevice, BLEClient, BLEDevice,
+};
+use esp_idf_hal::{
+    prelude::Peripherals,
+    task,
+    timer::{TimerConfig, TimerDriver},
+};
+use esp_idf_sys as _;
+use std::sync::Arc;
+
+use crate::aces::{
+    request_detail, request_protect, request_soc, Notifications, REQ_CLEAR, RX_UUID, SERVICE_UUID,
+    TX_UUID,
+};
