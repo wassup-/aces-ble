@@ -23,11 +23,10 @@ impl BatteryVoltage {
     }
 
     pub fn parse_message(msg: &[u8]) -> ParseResult<BatteryVoltage> {
-        if msg.len() < 10 {
+        if msg.len() < 8 {
             return Err(ParseError::NotEnoughData);
         }
 
-        let msg = &msg[2..10];
         Ok(BatteryVoltage(
             i16_from_bytes(&msg[0..2]),
             i16_from_bytes(&msg[2..4]),
@@ -42,14 +41,12 @@ mod tests {
     #[test]
     fn test_parse_message() {
         assert_eq!(
-            BatteryVoltage::parse_message(&[1, 2, 3, 4, 5, 6, 7, 8, 9]),
+            BatteryVoltage::parse_message(&[1, 2, 3, 4, 5, 6, 7]),
             Err(ParseError::NotEnoughData)
         );
 
         assert_eq!(
-            BatteryVoltage::parse_message(&[
-                0x00, 0x08, 0x0d, 0x0b, 0x0d, 0x0d, 0x0d, 0x0b, 0x0d, 0x0f, 0xff, 0x92, 0x77
-            ]),
+            BatteryVoltage::parse_message(&[0x0d, 0x0b, 0x0d, 0x0d, 0x0d, 0x0b, 0x0d, 0x0f]),
             Ok(BatteryVoltage(3339, 3341, 3339, 3343))
         );
     }

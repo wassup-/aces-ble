@@ -1,3 +1,4 @@
+mod checksum;
 mod detail;
 mod message;
 mod ntc;
@@ -5,6 +6,7 @@ mod protect;
 mod util;
 mod voltage;
 
+pub use checksum::*;
 pub use detail::*;
 pub use ntc::*;
 pub use protect::*;
@@ -16,6 +18,7 @@ type ParseResult<T> = std::result::Result<T, ParseError>;
 #[derive(Eq, PartialEq, Debug)]
 pub enum ParseError {
     NotEnoughData,
+    InvalidChecksum,
     InvalidData,
 }
 
