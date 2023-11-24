@@ -10,6 +10,15 @@ pub enum Message {
 pub struct ParseMessageFailed;
 
 impl Message {
+    pub fn is_complete_message(msg: &[u8]) -> bool {
+        if msg.len() < 7 {
+            return false;
+        }
+
+        let len = msg[3] as usize;
+        msg.len() >= 7 + len
+    }
+
     pub fn parse_message(msg: &[u8]) -> ParseResult<Message> {
         if msg.len() < 7 {
             return Err(ParseError::NotEnoughData);
@@ -43,10 +52,23 @@ impl Message {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn test_is_complete_message() {
+        assert!(!Message::is_complete_message(&[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ]));
+        assert!(!Message::is_complete_message(&[
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00
+        ]));
+        assert!(Message::is_complete_message(&[
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00
+        ]));
+    }
+
+    #[test]
     fn test_parse_message() {
         assert_eq!(
             Message::parse_message(&[
-                0xDD, 0x04, 0x00, 0x08, 0x0D, 0xE2, 0x0D, 0xDC, 0x0D, 0xEC, 0x0D, 0xED, 0xFF, 0x00,
+                0xDD, 0x04, 0x00, 0x08, 0x0D, 0xE2, 0x0D, 0xDC, 0x0D, 0xEC, 0x0D, 0xED, 0xCA, 0xFE,
                 0x77
             ]),
             Err(ParseError::InvalidChecksum)
@@ -83,9 +105,8 @@ mod tests {
         );
     }
 
-    use crate::aces::NtcList;
-
     use super::*;
+    use crate::NtcList;
 }
 
 use super::{

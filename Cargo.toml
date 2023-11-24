@@ -1,27 +1,19 @@
-[package]
-name = "aces-ble"
+[workspace]
+members = ["aces", "esp"]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.0"
+authors = ["Tom Knapen"]
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace.dependencies]
+thiserror = "1"
+log = "0"
 
 [profile.release]
 opt-level = "s"
 
 [profile.dev]
-debug = true
 opt-level = "z"
-
-[dependencies]
-futures = "0"
-serde = { version = "1.0", features = ["derive"] }
-thiserror = "1.0.50"
-log = "0"
-env_logger = "0"
-esp32-nimble = "0.3"
-esp-idf-sys = { version = "0", default-features = false }
-esp-idf-hal = { version = "0", default-features = false, features = ["embassy-sync"] }
-esp-idf-svc = { version = "0", default-features = false, features = ["alloc"] }
-
-[build-dependencies]
-embuild = "0.30"
+debug = true

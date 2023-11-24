@@ -1,10 +1,11 @@
 #![no_main]
 
-mod aces;
+mod notifications;
 
 // source: https://github.com/taks/esp32-nimble/blob/develop/examples/ble_client.rs
 
 const SLEEP_DURATION: u64 = 30;
+const TARGET_DEVICE_NAME: &str = "AL12V100HFA0191";
 
 esp_idf_sys::esp_app_desc!();
 
@@ -18,33 +19,45 @@ fn app_main() {
 
     task::block_on(async {
         let adapter = BLEDevice::take();
-        let device = find_aces_battery(&adapter).await;
+        let device = find_target_device(adapter).await;
 
         let mut client = BLEClient::new();
         connect_to_device(device.addr(), &mut client).await;
 
-        let service = client.get_service(Uuid16(SERVICE_UUID)).await.unwrap();
+        let service = client
+            .get_service(Uuid16(aces::SERVICE_UUID))
+            .await
+            .unwrap();
         let mut characteristics = service.get_characteristics().await.unwrap();
         let rx = characteristics
-            .find(|char| char.uuid() == Uuid16(RX_UUID))
+            .find(|char| char.uuid() == Uuid16(aces::RX_UUID))
             .expect("RX characteristic not found");
         let tx = characteristics
-            .find(|char| char.uuid() == Uuid16(TX_UUID))
+            .find(|char| char.uuid() == Uuid16(aces::TX_UUID))
             .expect("TX characteristic not found");
 
-        let mut notif = Notifications::subscribe(rx).await;
+        let mut notif = notifications::Notifications::subscribe(rx).await;
 
-        tx.write_value(&REQ_CLEAR, false).await.unwrap();
+        tx.write_value(aces::REQ_CLEAR, false).await.unwrap();
         timer.delay(timer.tick_hz()).await.unwrap();
 
         loop {
-            let soc = request_soc(tx, &mut notif).await.unwrap();
+            tx.write_value(aces::REQ_BATTERY_VOLTAGE, false)
+                .await
+                .unwrap();
+            let soc = aces::read_soc(&mut notif).await.unwrap();
             println!("soc: {}", soc);
 
-            let detail = request_detail(tx, &mut notif).await.unwrap();
+            tx.write_value(aces::REQ_BATTERY_DETAIL, false)
+                .await
+                .unwrap();
+            let detail = aces::read_detail(&mut notif).await.unwrap();
             println!("detail: {:#?}", detail);
 
-            let protect = request_protect(tx, &mut notif).await.unwrap();
+            tx.write_value(aces::REQ_BATTERY_PROTECT, false)
+                .await
+                .unwrap();
+            let protect = aces::read_protect(&mut notif).await.unwrap();
             println!("protect: {:#?}", protect);
 
             task::do_yield();
@@ -57,7 +70,7 @@ fn app_main() {
     });
 }
 
-async fn find_aces_battery(adapter: &BLEDevice) -> BLEAdvertisedDevice {
+async fn find_target_device(adapter: &BLEDevice) -> BLEAdvertisedDevice {
     log::info!("starting scan ...");
 
     let scan = adapter.get_scan();
@@ -68,7 +81,7 @@ async fn find_aces_battery(adapter: &BLEDevice) -> BLEAdvertisedDevice {
         .interval(100)
         .window(99)
         .on_result(move |scan, device| {
-            if device.name().contains("AL12V100HFA0191") {
+            if device.name().contains(TARGET_DEVICE_NAME) {
                 scan.stop().unwrap();
                 (*device0.lock()) = Some(device.clone());
             }
@@ -106,8 +119,3 @@ use esp_idf_hal::{
 };
 use esp_idf_sys as _;
 use std::sync::Arc;
-
-use crate::aces::{
-    request_detail, request_protect, request_soc, Notifications, REQ_CLEAR, RX_UUID, SERVICE_UUID,
-    TX_UUID,
-};
