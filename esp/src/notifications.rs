@@ -29,13 +29,13 @@ impl aces::Notifications for Notifications {
     fn next(&mut self) -> Vec<u8> {
         log::debug!("awaiting next notification");
 
-        let mut lock = self.notif.lock();
+        let mut locked = self.notif.lock();
         // protect agains spurious wake-ups
-        while lock.is_empty() {
-            lock = self.cv.wait(lock);
+        while locked.is_empty() {
+            locked = self.cv.wait(locked);
         }
 
-        let val = lock.pop_front().unwrap();
+        let val = locked.pop_front().unwrap();
         self.cv.notify_one();
         val
     }

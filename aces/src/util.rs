@@ -25,5 +25,12 @@ mod tests {
         assert_eq!(i16_from_bytes(&[0x56, 0x23]), 0x5623);
     }
 
+    #[test]
+    fn test_u16_from_bytes() {
+        assert_eq!(u16_from_bytes(&[0x00, 0x00]), 0x0000);
+        assert_eq!(u16_from_bytes(&[0x01, 0x02]), 0x0102);
+        assert_eq!(u16_from_bytes(&[0xff, 0xfe]), 0xfffe);
+    }
+
     use super::*;
 }

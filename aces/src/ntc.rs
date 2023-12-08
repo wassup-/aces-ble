@@ -64,15 +64,15 @@ mod tests {
             Err(ParseError::NotEnoughData)
         );
         assert_eq!(
-            NtcList::parse_message(&[1, 0x0B, 0xAD]),
+            NtcList::parse_message(&[1, 0x0b, 0xad]),
             Ok(NtcList(vec![0x0102]))
         );
         assert_eq!(
-            NtcList::parse_message(&[2, 0x0B, 0xAD, 0x0D]),
+            NtcList::parse_message(&[2, 0x0b, 0xad, 0x0d]),
             Err(ParseError::NotEnoughData)
         );
         assert_eq!(
-            NtcList::parse_message(&[2, 0x0B, 0xAD, 0x0D, 0xAF]),
+            NtcList::parse_message(&[2, 0x0b, 0xad, 0x0d, 0xaf]),
             Ok(NtcList(vec![0x0102, 0x0304]))
         );
     }
