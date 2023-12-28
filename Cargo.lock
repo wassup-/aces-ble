@@ -1322,6 +1322,7 @@ version = "0.1.0"
 dependencies = [
  "aces",
  "btleplug",
+ "chrono",
  "env_logger",
  "futures",
  "log",

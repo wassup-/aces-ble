@@ -32,6 +32,8 @@ async fn main() -> Result<()> {
     tokio::time::sleep(Duration::from_secs(1)).await;
 
     loop {
+        println!("local time: {}", chrono::Local::now().to_rfc3339());
+
         peripheral
             .write(
                 &tx,
