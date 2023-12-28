@@ -1,8 +1,9 @@
 mod checksum;
 mod detail;
-mod message;
 mod ntc;
 mod protect;
+mod request;
+mod response;
 mod util;
 mod voltage;
 
@@ -10,6 +11,8 @@ pub use checksum::*;
 pub use detail::*;
 pub use ntc::*;
 pub use protect::*;
+pub use request::*;
+pub use response::*;
 pub use voltage::*;
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -32,9 +35,9 @@ where
 {
     log::info!("reading SOC");
 
-    let msg = read_complete_message(notif);
-    match Message::parse_message(&msg) {
-        Ok(Message::Voltage(bv)) => Ok(bv.total()),
+    let resp = read_complete_response(notif);
+    match Response::parse_response(&resp) {
+        Ok(Response::BatteryVoltage(bv)) => Ok(bv.total()),
         _ => Err(WrongNotificationReceived.into()),
     }
 }
@@ -45,9 +48,9 @@ where
 {
     log::info!("reading DETAIL");
 
-    let msg = read_complete_message(notif);
-    match Message::parse_message(&msg) {
-        Ok(Message::Detail(detail)) => Ok(detail),
+    let resp = read_complete_response(notif);
+    match Response::parse_response(&resp) {
+        Ok(Response::BatteryDetail(detail)) => Ok(detail),
         _ => Err(WrongNotificationReceived.into()),
     }
 }
@@ -58,9 +61,9 @@ where
 {
     log::info!("reading PROTECT");
 
-    let msg = read_complete_message(notif);
-    match Message::parse_message(&msg) {
-        Ok(Message::Protect(protect)) => Ok(protect),
+    let resp = read_complete_response(notif);
+    match Response::parse_response(&resp) {
+        Ok(Response::BatteryProtect(protect)) => Ok(protect),
         _ => Err(WrongNotificationReceived.into()),
     }
 }
@@ -72,7 +75,7 @@ where
     N: Notifications,
 {
     log::info!("requesting SOC");
-    write_value(REQ_BATTERY_VOLTAGE, false).await?;
+    write_value(Request::BatteryVoltage.bytes(), false).await?;
     read_soc(notif).await
 }
 
@@ -83,7 +86,7 @@ where
     N: Notifications,
 {
     log::info!("requesting DETAIL");
-    write_value(REQ_BATTERY_DETAIL, false).await?;
+    write_value(Request::BatteryDetail.bytes(), false).await?;
     read_detail(notif).await
 }
 
@@ -94,20 +97,20 @@ where
     N: Notifications,
 {
     log::info!("requesting PROTECT");
-    write_value(REQ_BATTERY_PROTECT, false).await?;
+    write_value(Request::BatteryProtect.bytes(), false).await?;
     read_protect(notif).await
 }
 
-fn read_complete_message<N>(notif: &mut N) -> Vec<u8>
+fn read_complete_response<N>(notif: &mut N) -> Vec<u8>
 where
     N: Notifications,
 {
-    let mut msg: Vec<u8> = Vec::new();
-    while !Message::is_complete_message(&msg) {
+    let mut resp: Vec<u8> = Vec::new();
+    while !Response::is_complete_response(&resp) {
         let mut val = notif.next();
-        msg.append(&mut val);
+        resp.append(&mut val);
     }
-    msg
+    resp
 }
 
 // commands
@@ -116,16 +119,10 @@ pub const SERVICE_UUID: u16 = 0xff00;
 pub const RX_UUID: u16 = 0xff01;
 pub const TX_UUID: u16 = 0xff02;
 
-pub const REQ_CLEAR: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]; // "00000000000000"
-pub const REQ_BATTERY_DETAIL: &[u8] = &[0xdd, 0xa5, 0x03, 0x00, 0xff, 0xfd, 0x77]; // "DDA50300FFFD77"
-pub const REQ_BATTERY_VOLTAGE: &[u8] = &[0xdd, 0xa5, 0x04, 0x00, 0xff, 0xfc, 0x77]; // "DDA50400FFFC77"
-pub const REQ_BATTERY_PROTECT: &[u8] = &[0xdd, 0xa5, 0xaa, 0x00, 0xff, 0x56, 0x77]; // "DDA5AA00FF5677"
-
 // helpers
 
 #[derive(thiserror::Error, Debug)]
 #[error("Wrong notification received")]
 struct WrongNotificationReceived;
 
-use message::Message;
 use std::future::Future;

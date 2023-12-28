@@ -23,31 +23,48 @@ async fn main() -> Result<()> {
     let mut notif = notifications::Notifications::subscribe(&peripheral, rx).await?;
 
     peripheral
-        .write(&tx, aces::REQ_CLEAR, WriteType::WithoutResponse)
+        .write(
+            &tx,
+            aces::Request::Clear.bytes(),
+            WriteType::WithoutResponse,
+        )
         .await?;
     tokio::time::sleep(Duration::from_secs(1)).await;
 
     loop {
         peripheral
-            .write(&tx, aces::REQ_BATTERY_VOLTAGE, WriteType::WithoutResponse)
+            .write(
+                &tx,
+                aces::Request::BatteryVoltage.bytes(),
+                WriteType::WithoutResponse,
+            )
             .await?;
         let soc = aces::read_soc(&mut notif).await?;
         println!("soc: {}", soc);
 
         peripheral
-            .write(&tx, aces::REQ_BATTERY_DETAIL, WriteType::WithoutResponse)
+            .write(
+                &tx,
+                aces::Request::BatteryDetail.bytes(),
+                WriteType::WithoutResponse,
+            )
             .await?;
         let detail = aces::read_detail(&mut notif).await?;
         println!("detail: {:#?}", detail);
 
         peripheral
-            .write(&tx, aces::REQ_BATTERY_PROTECT, WriteType::WithoutResponse)
+            .write(
+                &tx,
+                aces::Request::BatteryProtect.bytes(),
+                WriteType::WithoutResponse,
+            )
             .await?;
         let protect = aces::read_protect(&mut notif).await?;
         println!("protect: {:#?}", protect);
 
         log::info!("sleeping for {} seconds", SLEEP_DURATION);
         tokio::time::sleep(Duration::from_secs(SLEEP_DURATION)).await;
+        println!();
     }
 }
 
