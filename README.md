@@ -17,3 +17,7 @@ This software is not affiliated nor endorsed by [ACES energy](https://aces-energ
 - [x] read Battery Voltage
 - [x] read Battery Detail
 - [x] read Battery Protect
+
+## License
+
+This library is provided under the MIT license. See [LICENSE](LICENSE).
