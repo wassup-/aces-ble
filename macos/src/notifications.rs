@@ -1,6 +1,5 @@
 pub struct Notifications {
-    notif: Arc<Mutex<VecDeque<Vec<u8>>>>,
-    cv: Arc<Condvar>,
+    state: Arc<(Mutex<VecDeque<Vec<u8>>>, Condvar)>,
 }
 
 impl Notifications {
@@ -8,29 +7,27 @@ impl Notifications {
         peripheral: &Peripheral,
         characteristic: Characteristic,
     ) -> Result<Notifications, Box<dyn std::error::Error>> {
-        let notif = Arc::new(Mutex::new(VecDeque::new()));
-        let cv = Arc::new(Condvar::new());
+        let state = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
 
         peripheral.subscribe(&characteristic).await?;
         let mut notifs = peripheral.notifications().await?;
 
-        let notif0 = Arc::clone(&notif);
-        let cv0 = Arc::clone(&cv);
+        let state0 = Arc::clone(&state);
         tokio::task::spawn(async move {
             loop {
                 if let Some(notif) = notifs.next().await {
                     log::trace!("received notification item from stream");
-                    let mut lock = notif0.lock().unwrap();
+                    let mut lock = state0.0.lock().unwrap();
                     lock.push_back(notif.value);
-                    cv0.notify_one();
+                    state0.1.notify_one();
                 } else {
-                    log::trace!("did not notification item from stream");
+                    log::trace!("did not receive notification item from stream");
                 }
                 tokio::task::yield_now().await;
             }
         });
 
-        Ok(Notifications { notif, cv })
+        Ok(Notifications { state })
     }
 }
 
@@ -38,14 +35,14 @@ impl aces::NotificationsReceiver for Notifications {
     fn next(&mut self) -> Vec<u8> {
         log::debug!("awaiting next notification");
 
-        let mut locked = self.notif.lock().unwrap();
+        let mut locked = self.state.0.lock().unwrap();
         // protect agains spurious wake-ups
         while locked.is_empty() {
-            locked = self.cv.wait(locked).unwrap();
+            locked = self.state.1.wait(locked).unwrap();
         }
 
         let val = locked.pop_front().unwrap();
-        self.cv.notify_one();
+        self.state.1.notify_one();
         val
     }
 }
