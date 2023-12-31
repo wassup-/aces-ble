@@ -1,47 +1,43 @@
 #[derive(Eq, PartialEq, Debug)]
-pub enum Message {
-    Voltage(BatteryVoltage),
-    Detail(BatteryDetail),
-    Protect(BatteryProtect),
+pub enum Response {
+    BatteryDetail(BatteryDetail),
+    BatteryProtect(BatteryProtect),
+    BatteryVoltage(BatteryVoltage),
 }
 
-#[derive(thiserror::Error, Debug)]
-#[error("Failed to parse message")]
-pub struct ParseMessageFailed;
-
-impl Message {
-    pub fn is_complete_message(msg: &[u8]) -> bool {
-        if msg.len() < 7 {
+impl Response {
+    pub fn is_complete_response(response: &[u8]) -> bool {
+        if response.len() < 7 {
             return false;
         }
 
-        let len = msg[3] as usize;
-        msg.len() >= 7 + len
+        let len = response[3] as usize;
+        response.len() >= 7 + len
     }
 
-    pub fn parse_message(msg: &[u8]) -> ParseResult<Message> {
-        if msg.len() < 7 {
+    pub fn parse_response(response: &[u8]) -> ParseResult<Self> {
+        if response.len() < 7 {
             return Err(ParseError::NotEnoughData);
         }
 
-        let identifier = u16_from_bytes(&msg[..2]);
-        let control = msg[2];
-        let len = msg[3] as usize;
-        let checksum = u16_from_bytes(&msg[msg.len() - 3..msg.len() - 1]);
+        let identifier = u16_from_bytes(&response[..2]);
+        let control = response[2];
+        let len = response[3] as usize;
+        let checksum = u16_from_bytes(&response[response.len() - 3..response.len() - 1]);
 
-        if msg.len() != 7 + len {
+        if response.len() != 7 + len {
             return Err(ParseError::NotEnoughData);
         }
 
-        let payload = &msg[4..(4 + len)];
+        let payload = &response[4..(4 + len)];
         if !verify_checksum(checksum, payload, control) {
             return Err(ParseError::InvalidChecksum);
         }
 
         match identifier {
-            0xdd03 => return BatteryDetail::parse_message(payload).map(Message::Detail),
-            0xdd04 => return BatteryVoltage::parse_message(payload).map(Message::Voltage),
-            0xddaa => return BatteryProtect::parse_message(payload).map(Message::Protect),
+            0xdd03 => return BatteryDetail::parse_message(payload).map(Response::BatteryDetail),
+            0xdd04 => return BatteryVoltage::parse_message(payload).map(Response::BatteryVoltage),
+            0xddaa => return BatteryProtect::parse_message(payload).map(Response::BatteryProtect),
             _ => (),
         }
 
@@ -52,14 +48,14 @@ impl Message {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn test_is_complete_message() {
-        assert!(!Message::is_complete_message(&[
+    fn test_is_complete_response() {
+        assert!(!Response::is_complete_response(&[
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         ]));
-        assert!(!Message::is_complete_message(&[
+        assert!(!Response::is_complete_response(&[
             0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00
         ]));
-        assert!(Message::is_complete_message(&[
+        assert!(Response::is_complete_response(&[
             0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00
         ]));
     }
@@ -67,24 +63,24 @@ mod tests {
     #[test]
     fn test_parse_message() {
         assert_eq!(
-            Message::parse_message(&[
+            Response::parse_response(&[
                 0xdd, 0x04, 0x00, 0x08, 0x0d, 0xe2, 0x0d, 0xdc, 0x0d, 0xec, 0x0d, 0xed, 0xca, 0xfe,
                 0x77
             ]),
             Err(ParseError::InvalidChecksum)
         );
-        assert!(Message::parse_message(&[
+        assert!(Response::parse_response(&[
             0xdd, 0x04, 0x00, 0x08, 0x0d, 0xe2, 0x0d, 0xdc, 0x0d, 0xec, 0x0d, 0xed, 0xfc, 0x2d,
             0x77
         ])
         .is_ok());
         assert_eq!(
-            Message::parse_message(&[
+            Response::parse_response(&[
                 0xdd, 0x03, 0x00, 0x1d, 0x05, 0x38, 0x02, 0x83, 0x17, 0x5c, 0x27, 0xde, 0x00, 0x09,
                 0x2b, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x3b, 0x03, 0x04, 0x03, 0x0b,
                 0x7f, 0x0b, 0x6c, 0x0b, 0x69, 0xfb, 0x07, 0x77
             ]),
-            Ok(Message::Detail(BatteryDetail {
+            Ok(Response::BatteryDetail(BatteryDetail {
                 total_voltage: 1336,
                 current: 643,
                 residual_capacity: 5980,
@@ -109,7 +105,7 @@ mod tests {
     use crate::NtcList;
 }
 
-use super::{
+use crate::{
     util::u16_from_bytes, verify_checksum, BatteryDetail, BatteryProtect, BatteryVoltage,
     ParseError, ParseResult,
 };
