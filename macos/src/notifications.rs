@@ -34,7 +34,7 @@ impl Notifications {
     }
 }
 
-impl aces::Notifications for Notifications {
+impl aces::NotificationsReceiver for Notifications {
     fn next(&mut self) -> Vec<u8> {
         log::debug!("awaiting next notification");
 
