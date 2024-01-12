@@ -45,8 +45,8 @@ fn app_main() {
             tx.write_value(aces::REQ_BATTERY_VOLTAGE, false)
                 .await
                 .unwrap();
-            let soc = aces::read_soc(&mut notif).await.unwrap();
-            println!("soc: {}", soc);
+            let voltage = aces::read_voltage(&mut notif).await.unwrap();
+            println!("voltage: {:#?}", voltage);
 
             tx.write_value(aces::REQ_BATTERY_DETAIL, false)
                 .await

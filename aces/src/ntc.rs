@@ -1,37 +1,7 @@
 #[derive(Eq, PartialEq, Debug)]
-pub struct NtcList(Vec<i16>);
+pub struct NtcList(pub Vec<i16>);
 
 impl NtcList {
-    pub fn from_list(list: Vec<i16>) -> Self {
-        NtcList(list)
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn avg(&self) -> i16 {
-        let init = *self.0.first().unwrap_or(&0);
-        let total = self.0.iter().skip(1).fold(init, |acc, ntc| acc + ntc);
-        total / self.len() as i16
-    }
-
-    pub fn min(&self) -> i16 {
-        let init = match self.0.first() {
-            Some(first) => *first,
-            _ => return 0,
-        };
-        self.0.iter().skip(1).fold(init, |acc, ntc| acc.min(*ntc))
-    }
-
-    pub fn max(&self) -> i16 {
-        let init = match self.0.first() {
-            Some(first) => *first,
-            _ => return 0,
-        };
-        self.0.iter().skip(1).fold(init, |acc, ntc| acc.max(*ntc))
-    }
-
     pub fn parse_message(msg: &[u8]) -> ParseResult<Self> {
         if msg.is_empty() {
             return Err(ParseError::NotEnoughData);

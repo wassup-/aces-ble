@@ -21,7 +21,7 @@ pub struct BatteryDetail {
     pub charge: bool,
     pub discharge: bool,
     pub battery_number: u8,
-    pub list_ntc: NtcList,
+    pub list_ntc: Vec<i16>,
 }
 
 impl BatteryDetail {
@@ -46,7 +46,7 @@ impl BatteryDetail {
             charge: (msg[20] & 1) == 1,
             discharge: (msg[20] & 2) == 2,
             battery_number: msg[21],
-            list_ntc: NtcList::parse_message(&msg[22..])?,
+            list_ntc: NtcList::parse_message(&msg[22..])?.0,
         })
     }
 }
@@ -93,7 +93,7 @@ mod tests {
                 charge: true,
                 discharge: true,
                 battery_number: 4,
-                list_ntc: NtcList::from_list(vec![217, 206, 202,]),
+                list_ntc: vec![217, 206, 202],
             })
         );
     }

@@ -96,13 +96,12 @@ mod tests {
                 charge: true,
                 discharge: true,
                 battery_number: 4,
-                list_ntc: NtcList::from_list(vec![212, 193, 190])
+                list_ntc: vec![212, 193, 190]
             }))
         );
     }
 
     use super::*;
-    use crate::NtcList;
 }
 
 use crate::{

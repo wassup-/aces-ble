@@ -1,38 +1,24 @@
 #[derive(Eq, PartialEq, Debug)]
-pub struct BatteryVoltage(i16, i16, i16, i16);
+pub struct BatteryVoltage(pub Vec<i16>);
 
 impl BatteryVoltage {
-    /// The total voltage.
-    pub fn total(&self) -> i64 {
-        self.0 as i64 + self.1 as i64 + self.2 as i64 + self.3 as i64
-    }
-
-    /// The average voltage.
-    pub fn avg(&self) -> i64 {
-        self.total() / 4
-    }
-
-    /// The minimum voltage.
-    pub fn min(&self) -> i64 {
-        self.0.min(self.1).min(self.2).min(self.3) as i64
-    }
-
-    /// The maximum voltage.
-    pub fn max(&self) -> i64 {
-        self.0.max(self.1).max(self.2).max(self.3) as i64
-    }
-
     pub fn parse_message(msg: &[u8]) -> ParseResult<BatteryVoltage> {
-        if msg.len() < 8 {
+        if msg.is_empty() {
+            return Err(ParseError::NotEnoughData);
+        }
+        if msg.len() % 2 != 0 {
             return Err(ParseError::NotEnoughData);
         }
 
-        Ok(BatteryVoltage(
-            i16_from_bytes(&msg[0..2]),
-            i16_from_bytes(&msg[2..4]),
-            i16_from_bytes(&msg[4..6]),
-            i16_from_bytes(&msg[6..8]),
-        ))
+        let num_items = msg.len() / 2;
+        let mut list = Vec::new();
+
+        for i in 0..num_items {
+            let offset = i * 2;
+            list.push(i16_from_bytes(&msg[offset..(offset + 2)]));
+        }
+
+        Ok(BatteryVoltage(list))
     }
 }
 
@@ -46,8 +32,13 @@ mod tests {
         );
 
         assert_eq!(
+            BatteryVoltage::parse_message(&[0x0d, 0x0b, 0x0d, 0x0d, 0x0d, 0x0f]),
+            Ok(BatteryVoltage(vec![3339, 3341, 3343]))
+        );
+
+        assert_eq!(
             BatteryVoltage::parse_message(&[0x0d, 0x0b, 0x0d, 0x0d, 0x0d, 0x0b, 0x0d, 0x0f]),
-            Ok(BatteryVoltage(3339, 3341, 3339, 3343))
+            Ok(BatteryVoltage(vec![3339, 3341, 3339, 3343]))
         );
     }
 
