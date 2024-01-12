@@ -41,8 +41,8 @@ async fn main() -> Result<()> {
                 WriteType::WithoutResponse,
             )
             .await?;
-        let soc = aces::read_soc(&mut notif).await?;
-        println!("soc: {}", soc);
+        let voltage = aces::read_voltage(&mut notif).await?;
+        println!("voltage: {:#?}", voltage);
 
         peripheral
             .write(

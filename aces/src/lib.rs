@@ -29,15 +29,15 @@ pub enum ParseError {
     InvalidData,
 }
 
-pub async fn read_soc<N>(receiver: &mut N) -> Result<i64>
+pub async fn read_voltage<N>(receiver: &mut N) -> Result<Vec<i16>>
 where
     N: NotificationsReceiver,
 {
-    log::info!("reading SOC");
+    log::info!("reading VOLTAGE");
 
     let resp = read_complete_response(receiver);
     match Response::parse_response(&resp) {
-        Ok(Response::BatteryVoltage(bv)) => Ok(bv.total()),
+        Ok(Response::BatteryVoltage(voltage)) => Ok(voltage.0),
         _ => Err(WrongNotificationReceived.into()),
     }
 }
@@ -68,15 +68,15 @@ where
     }
 }
 
-pub async fn request_soc<F, R, N>(write_value: F, receiver: &mut N) -> Result<i64>
+pub async fn request_voltage<F, R, N>(write_value: F, receiver: &mut N) -> Result<Vec<i16>>
 where
     F: FnOnce(&[u8], bool) -> R,
     R: Future<Output = Result<()>>,
     N: NotificationsReceiver,
 {
-    log::info!("requesting SOC");
+    log::info!("requesting VOLTAGE");
     write_value(Request::BatteryVoltage.bytes(), false).await?;
-    read_soc(receiver).await
+    read_voltage(receiver).await
 }
 
 pub async fn request_detail<F, R, N>(write_value: F, receiver: &mut N) -> Result<BatteryDetail>
