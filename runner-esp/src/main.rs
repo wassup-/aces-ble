@@ -4,8 +4,10 @@ mod notifications;
 
 // source: https://github.com/taks/esp32-nimble/blob/develop/examples/ble_client.rs
 
-const SLEEP_DURATION: u64 = 30;
+/// The name of the target device (e.g. the device to connect to).
 const TARGET_DEVICE_NAME: &str = "AL12V100HFA0191";
+/// The sleep duration in seconds.
+const SLEEP_DURATION: u64 = 30;
 
 esp_idf_sys::esp_app_desc!();
 
@@ -38,23 +40,25 @@ fn app_main() {
 
         let mut notif = notifications::Notifications::subscribe(rx).await;
 
-        tx.write_value(aces::REQ_CLEAR, false).await.unwrap();
+        tx.write_value(aces::Request::Clear.bytes(), false)
+            .await
+            .unwrap();
         timer.delay(timer.tick_hz()).await.unwrap();
 
         loop {
-            tx.write_value(aces::REQ_BATTERY_VOLTAGE, false)
+            tx.write_value(aces::Request::BatteryVoltage.bytes(), false)
                 .await
                 .unwrap();
             let voltage = aces::read_voltage(&mut notif).await.unwrap();
             println!("voltage: {:#?}", voltage);
 
-            tx.write_value(aces::REQ_BATTERY_DETAIL, false)
+            tx.write_value(aces::Request::BatteryDetail.bytes(), false)
                 .await
                 .unwrap();
             let detail = aces::read_detail(&mut notif).await.unwrap();
             println!("detail: {:#?}", detail);
 
-            tx.write_value(aces::REQ_BATTERY_PROTECT, false)
+            tx.write_value(aces::Request::BatteryProtect.bytes(), false)
                 .await
                 .unwrap();
             let protect = aces::read_protect(&mut notif).await.unwrap();
@@ -81,21 +85,18 @@ async fn find_target_device(adapter: &BLEDevice) -> BLEAdvertisedDevice {
         .interval(100)
         .window(99)
         .on_result(move |scan, device| {
-            if device.name().contains(TARGET_DEVICE_NAME) {
+            if device.name() == TARGET_DEVICE_NAME {
                 scan.stop().unwrap();
                 (*device0.lock()) = Some(device.clone());
             }
         });
-    scan.start(3000).await.unwrap();
+    scan.start(3_000).await.unwrap();
 
     log::info!("finished scan");
 
     return match &*device.lock() {
         Some(device) => device.clone(),
-        None => {
-            log::info!("ACES battery not found");
-            panic!("ACES battery not found");
-        }
+        None => panic!("ACES battery not found"),
     };
 }
 
