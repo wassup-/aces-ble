@@ -22,10 +22,13 @@ pub trait NotificationsReceiver {
     fn next(&mut self) -> Vec<u8>;
 }
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, thiserror::Error)]
 pub enum ParseError {
+    #[error("Not enough data")]
     NotEnoughData,
+    #[error("Invalid checksum")]
     InvalidChecksum,
+    #[error("Invalid data")]
     InvalidData,
 }
 
