@@ -346,35 +346,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "client-esp"
-version = "0.1.0"
-dependencies = [
- "aces",
- "embuild 0.32.0",
- "env_logger",
- "esp-idf-hal",
- "esp-idf-svc",
- "esp-idf-sys",
- "esp32-nimble",
- "log",
- "thiserror",
-]
-
-[[package]]
-name = "client-macos"
-version = "0.1.0"
-dependencies = [
- "aces",
- "btleplug",
- "chrono",
- "env_logger",
- "futures",
- "log",
- "thiserror",
- "tokio",
-]
-
-[[package]]
 name = "cmake"
 version = "0.1.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -824,6 +795,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "esp-client"
+version = "0.1.0"
+dependencies = [
+ "aces",
+ "embuild 0.32.0",
+ "env_logger",
+ "esp-idf-hal",
+ "esp-idf-svc",
+ "esp-idf-sys",
+ "esp32-nimble",
+ "log",
+ "thiserror",
+]
+
+[[package]]
 name = "esp-idf-hal"
 version = "0.42.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -880,6 +866,21 @@ dependencies = [
  "serde",
  "strum 0.24.1",
  "which",
+]
+
+[[package]]
+name = "esp-server"
+version = "0.1.0"
+dependencies = [
+ "aces",
+ "embuild 0.32.0",
+ "env_logger",
+ "esp-idf-hal",
+ "esp-idf-svc",
+ "esp-idf-sys",
+ "esp32-nimble",
+ "log",
+ "thiserror",
 ]
 
 [[package]]
@@ -1331,6 +1332,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 
 [[package]]
+name = "macos-client"
+version = "0.1.0"
+dependencies = [
+ "aces",
+ "btleplug",
+ "chrono",
+ "env_logger",
+ "futures",
+ "log",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "malloc_buf"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1758,21 +1773,6 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
-]
-
-[[package]]
-name = "server-esp"
-version = "0.1.0"
-dependencies = [
- "aces",
- "embuild 0.32.0",
- "env_logger",
- "esp-idf-hal",
- "esp-idf-svc",
- "esp-idf-sys",
- "esp32-nimble",
- "log",
- "thiserror",
 ]
 
 [[package]]
