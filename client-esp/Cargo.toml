@@ -1,5 +1,5 @@
 [package]
-name = "runner-esp"
+name = "client-esp"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

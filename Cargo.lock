@@ -346,6 +346,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "client-esp"
+version = "0.1.0"
+dependencies = [
+ "aces",
+ "embuild 0.32.0",
+ "env_logger",
+ "esp-idf-hal",
+ "esp-idf-svc",
+ "esp-idf-sys",
+ "esp32-nimble",
+ "log",
+ "thiserror",
+]
+
+[[package]]
 name = "cmake"
 version = "0.1.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1607,21 +1622,6 @@ dependencies = [
  "libc",
  "normpath",
  "windows-sys 0.45.0",
-]
-
-[[package]]
-name = "runner-esp"
-version = "0.1.0"
-dependencies = [
- "aces",
- "embuild 0.32.0",
- "env_logger",
- "esp-idf-hal",
- "esp-idf-svc",
- "esp-idf-sys",
- "esp32-nimble",
- "log",
- "thiserror",
 ]
 
 [[package]]
