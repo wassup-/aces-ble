@@ -69,11 +69,13 @@ mod tests {
             ]),
             Err(ParseError::InvalidChecksum)
         );
+
         assert!(Response::parse_response(&[
             0xdd, 0x04, 0x00, 0x08, 0x0d, 0xe2, 0x0d, 0xdc, 0x0d, 0xec, 0x0d, 0xed, 0xfc, 0x2d,
             0x77
         ])
         .is_ok());
+
         assert_eq!(
             Response::parse_response(&[
                 0xdd, 0x03, 0x00, 0x1d, 0x05, 0x38, 0x02, 0x83, 0x17, 0x5c, 0x27, 0xde, 0x00, 0x09,
@@ -99,6 +101,27 @@ mod tests {
                 list_ntc: vec![212, 193, 190]
             }))
         );
+
+        assert_eq!(
+            Response::parse_response(&[
+                0xdd, 0xaa, 0x00, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xe6,
+                0x77
+            ]),
+            Ok(Response::BatteryProtect(BatteryProtect {
+                short_circuit: 0,
+                over_current_charging: 0,
+                over_current_discharging: 0,
+                cell_overvoltage: 0,
+                cell_undervoltage: 4,
+                high_temp_charging: 0,
+                low_temp_charging: 0,
+                high_temp_discharging: 0,
+                low_temp_discharging: 0,
+                pack_overvoltage: 0,
+                pack_undervoltage: 0
+            }))
+        )
     }
 
     use super::*;
