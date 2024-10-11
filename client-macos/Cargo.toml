@@ -1,5 +1,5 @@
 [package]
-name = "runner-macos"
+name = "client-macos"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
