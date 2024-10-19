@@ -4,7 +4,7 @@ mod channel;
 
 // source: https://github.com/taks/esp32-nimble/blob/develop/examples/ble_client.rs
 
-/// The name of the target device (e.g. the device to connect to).
+/// The advertised name of the device.
 const DEVICE_NAME: &str = "ACES-MOCK";
 
 esp_idf_sys::esp_app_desc!();

@@ -1,6 +1,7 @@
 mod notifications;
 
 const SLEEP_DURATION: u64 = 30;
+/// The name of the target device (e.g. the device to connect to).
 const TARGET_DEVICE_NAME: &str = "AL12V100HFA0191";
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
