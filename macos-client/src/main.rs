@@ -29,7 +29,10 @@ async fn main() -> Result<()> {
             WriteType::WithoutResponse,
         )
         .await?;
+
     tokio::time::sleep(Duration::from_secs(1)).await;
+    // clear any stale notifications
+    notif.clear();
 
     loop {
         println!("local time: {}", chrono::Local::now().to_rfc3339());
