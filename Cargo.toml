@@ -1,5 +1,5 @@
 [workspace]
-members = ["aces", "runner-esp", "runner-macos"]
+members = ["aces", "esp-client", "esp-server", "macos-client"]
 resolver = "2"
 
 [workspace.package]

@@ -1,6 +1,7 @@
 mod notifications;
 
 const SLEEP_DURATION: u64 = 30;
+/// The name of the target device (e.g. the device to connect to).
 const TARGET_DEVICE_NAME: &str = "AL12V100HFA0191";
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -18,7 +19,7 @@ async fn main() -> Result<()> {
 
     let adapter = adapters.first().unwrap();
     let peripheral = find_target_device(adapter).await?;
-    let (rx, tx) = connect_to_device(&peripheral).await?;
+    let (tx, rx) = connect_to_device(&peripheral).await?;
 
     let mut notif = notifications::Notifications::subscribe(&peripheral, rx).await?;
 
@@ -29,7 +30,10 @@ async fn main() -> Result<()> {
             WriteType::WithoutResponse,
         )
         .await?;
+
     tokio::time::sleep(Duration::from_secs(1)).await;
+    // clear any stale notifications
+    notif.clear();
 
     loop {
         println!("local time: {}", chrono::Local::now().to_rfc3339());
@@ -130,7 +134,7 @@ async fn connect_to_device(peripheral: &Peripheral) -> Result<(Characteristic, C
         _ => return Err(NotFound.into()),
     };
 
-    Ok((rx.clone(), tx.clone()))
+    Ok((tx.clone(), rx.clone()))
 }
 
 #[derive(thiserror::Error, Debug)]

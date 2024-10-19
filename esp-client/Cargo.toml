@@ -1,0 +1,28 @@
+[package]
+name = "esp-client"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aces = { path = "../aces" }
+thiserror.workspace = true
+log.workspace = true
+env_logger = "0"
+esp32-nimble = "0.3.2"
+esp-idf-sys = { version = "0", default-features = false }
+esp-idf-hal = { version = "0", default-features = false, features = [
+    "embassy-sync",
+] }
+esp-idf-svc = { version = "0", default-features = false, features = ["alloc"] }
+
+[build-dependencies]
+embuild = "0.32"
+
+[package.metadata.esp-idf-sys]
+esp_idf_sdkconfig_defaults = "sdkconfig.defaults"
+esp_idf_tools_install_dir = "global"
+esp_idf_version = "v5.1.2"
+mcu = "esp32c3"
