@@ -43,7 +43,10 @@ fn app_main() {
         tx.write_value(aces::Request::Clear.bytes(), false)
             .await
             .unwrap();
+
         timer.delay(timer.tick_hz()).await.unwrap();
+        // clear any stale notifications
+        notif.clear();
 
         loop {
             tx.write_value(aces::Request::BatteryVoltage.bytes(), false)

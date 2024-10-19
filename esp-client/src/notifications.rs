@@ -20,6 +20,12 @@ impl Notifications {
 
         Notifications { state }
     }
+
+    pub fn clear(&mut self) {
+        let mut lock = self.state.0.lock();
+        lock.clear();
+        self.state.1.notify_one();
+    }
 }
 
 impl aces::NotificationsReceiver for Notifications {
