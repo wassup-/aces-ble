@@ -10,7 +10,7 @@ impl Notifications {
         peripheral.subscribe(&characteristic).await?;
 
         let mut notifs = peripheral.notifications().await?;
-        let (rx, tx) = sync::channel();
+        let (tx, rx) = sync::channel();
 
         tokio::task::spawn(async move {
             loop {
@@ -41,9 +41,9 @@ impl aces::NotificationsReceiver for Notifications {
 
 mod sync {
     /// Creates a new channel.
-    pub fn channel<T>() -> (Receiver<T>, Sender<T>) {
+    pub fn channel<T>() -> (Sender<T>, Receiver<T>) {
         let inner = Inner(Arc::new(((Mutex::new(VecDeque::new())), Condvar::new())));
-        (Receiver(inner.clone()), Sender(inner))
+        (Sender(inner.clone()), Receiver(inner))
     }
 
     pub struct Sender<T>(Inner<T>);

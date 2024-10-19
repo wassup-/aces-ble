@@ -18,7 +18,7 @@ async fn main() -> Result<()> {
 
     let adapter = adapters.first().unwrap();
     let peripheral = find_target_device(adapter).await?;
-    let (rx, tx) = connect_to_device(&peripheral).await?;
+    let (tx, rx) = connect_to_device(&peripheral).await?;
 
     let mut notif = notifications::Notifications::subscribe(&peripheral, rx).await?;
 
@@ -133,7 +133,7 @@ async fn connect_to_device(peripheral: &Peripheral) -> Result<(Characteristic, C
         _ => return Err(NotFound.into()),
     };
 
-    Ok((rx.clone(), tx.clone()))
+    Ok((tx.clone(), rx.clone()))
 }
 
 #[derive(thiserror::Error, Debug)]
