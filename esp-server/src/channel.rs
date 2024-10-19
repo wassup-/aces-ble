@@ -33,14 +33,19 @@ impl Receiver {
         Receiver { state }
     }
 
-    pub fn recv(&mut self) -> Vec<u8> {
+    pub fn recv_timeout(&mut self, duration: Duration) -> Option<Vec<u8>> {
         let mut locked = self.state.0.lock();
-        // protect agains spurious wake-ups
-        while locked.is_empty() {
-            locked = self.state.1.wait(locked);
+
+        if locked.is_empty() {
+            let timeout;
+            (locked, timeout) = self.state.1.wait_timeout(locked, duration);
+
+            if timeout {
+                return None;
+            }
         }
 
-        let val = locked.pop_front().unwrap();
+        let val = locked.pop_front();
         self.state.1.notify_one();
         val
     }
@@ -50,4 +55,4 @@ use esp32_nimble::{
     utilities::mutex::{Condvar, Mutex},
     BLECharacteristic,
 };
-use std::{collections::VecDeque, sync::Arc};
+use std::{collections::VecDeque, sync::Arc, time::Duration};
