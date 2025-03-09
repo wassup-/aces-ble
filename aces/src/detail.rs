@@ -14,7 +14,7 @@ pub struct BatteryDetail {
     pub equilibrium: i16,
     pub equilibrium_high: i16,
     // pub balance_states:Vec<Bool>,
-    pub protection_of_state: i16,
+    pub protection_of_state: ProtectionOfState,
     pub software_version: u8,
     pub residual_capacity_percent: u8,
     pub control_state: u8,
@@ -39,7 +39,7 @@ impl BatteryDetail {
             date_of_production: i16_from_bytes(&msg[10..12]),
             equilibrium: i16_from_bytes(&msg[12..14]),
             equilibrium_high: i16_from_bytes(&msg[14..16]),
-            protection_of_state: i16_from_bytes(&msg[16..18]),
+            protection_of_state: ProtectionOfState(i16_from_bytes(&msg[16..18])),
             software_version: msg[18],
             residual_capacity_percent: msg[19],
             control_state: msg[20],
@@ -86,7 +86,7 @@ mod tests {
                 date_of_production: 11156,
                 equilibrium: 0,
                 equilibrium_high: 0,
-                protection_of_state: 0,
+                protection_of_state: ProtectionOfState(0),
                 software_version: 32,
                 residual_capacity_percent: 92,
                 control_state: 3,
@@ -101,4 +101,4 @@ mod tests {
     use super::*;
 }
 
-use super::{util::i16_from_bytes, NtcList, ParseError, ParseResult};
+use super::{util::i16_from_bytes, NtcList, ParseError, ParseResult, ProtectionOfState};

@@ -91,7 +91,7 @@ mod tests {
                 date_of_production: 11156,
                 equilibrium: 0,
                 equilibrium_high: 0,
-                protection_of_state: 0,
+                protection_of_state: ProtectionOfState(0),
                 software_version: 32,
                 residual_capacity_percent: 59,
                 control_state: 3,
@@ -125,6 +125,7 @@ mod tests {
     }
 
     use super::*;
+    use crate::ProtectionOfState;
 }
 
 use crate::{
